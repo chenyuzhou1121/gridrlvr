@@ -1,0 +1,144 @@
+# Nested keys are forwarded to verl as Hydra overrides by scripts/train.py.
+algorithm:
+  # Advantage estimator; --reward-dimensions selects gdpo instead.
+  adv_estimator: grpo
+  # Disable adding a KL term to the reward.
+  use_kl_in_reward: false
+  filter_groups:
+    # Enable verl's group filtering using the reward metric below.
+    enable: true
+    # Recovery metric emitted in agent-loop reward_extra_info.
+    metric: acc
+    # Maximum generation batches used to collect a training batch.
+    max_num_gen_batches: 10
+    # Concurrent generation batches allowed by the trainer.
+    max_inflight_gen_batches: 1
+data:
+  # Required training Parquet file; --train-data overrides this placeholder.
+  train_files: /path/to/train.parquet
+  # Required validation Parquet file; --val-data overrides this placeholder.
+  val_files: /path/to/validation.parquet
+  # Number of input rows per training batch.
+  train_batch_size: 8
+  # Number of input rows per generation batch.
+  gen_batch_size: 1
+  # Prompt token budget before rollout generation.
+  max_prompt_length: 24576
+  # Response token budget, including assistant and tool-feedback tokens.
+  max_response_length: 8192
+  # Filter dataset prompts exceeding the prompt budget.
+  filter_overlong_prompts: true
+  # Raise on overlong input rather than silently truncating it.
+  truncation: error
+  apply_chat_template_kwargs:
+    # Tokenizer chat-template option controlling thinking output.
+    enable_thinking: false
+actor_rollout_ref:
+  model:
+    # Required local policy model directory; --model-path overrides it.
+    path: /path/to/model
+    # Low-rank adapter rank.
+    lora_rank: 32
+    # Low-rank adapter scaling parameter.
+    lora_alpha: 32
+    # Model module names receiving low-rank adapters.
+    target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+    # Keep padded model inputs.
+    use_remove_padding: false
+    # Enable model gradient checkpointing during training.
+    enable_gradient_checkpointing: true
+  actor:
+    # verl actor execution strategy.
+    strategy: fsdp2
+    # Input rows per policy-update mini-batch.
+    ppo_mini_batch_size: 8
+    # Lower policy-ratio clipping range.
+    clip_ratio_low: 0.2
+    # Upper policy-ratio clipping range.
+    clip_ratio_high: 0.28
+    # Aggregate the policy loss over tokens.
+    loss_agg_mode: token-mean
+    # Disable the actor's separate KL loss.
+    use_kl_loss: false
+    # Disable torch.compile for actor execution.
+    use_torch_compile: false
+    optim:
+      # Actor optimizer learning rate.
+      lr: 0.000001
+    fsdp_config:
+      # Model parameter computation dtype.
+      model_dtype: bfloat16
+      # Enable the FSDP CPU offload policy.
+      offload_policy: true
+  rollout:
+    # verl generation backend.
+    name: vllm
+    # Generate through the asynchronous agent-loop interface.
+    mode: async
+    # Independent responses sampled per input row.
+    n: 8
+    # Tensor-parallel GPU count per generation worker.
+    tensor_model_parallel_size: 1
+    # Generation backend's total context-token limit.
+    max_model_len: 32768
+    # GPU-memory fraction reserved by the generation backend.
+    gpu_memory_utilization: 0.5
+    # Default rollout temperature; loop sampling_temperature can override train rows.
+    temperature: 1.0
+    # Nucleus sampling probability.
+    top_p: 0.8
+    # Maximum number of candidate tokens retained for sampling.
+    top_k: 20
+    # Request raw token log probabilities from the generation backend.
+    logprobs_mode: raw_logprobs
+    multi_turn:
+      # Enable tool-interaction rollouts.
+      enable: true
+      # verl assistant-turn limit; each custom loop also has max_steps.
+      max_assistant_turns: 8
+      # verl user-turn limit.
+      max_user_turns: 8
+      # Tool-call format used by the configured tokenizer/backend.
+      format: qwen3_coder
+      # Require rendered tool feedback to preserve the sampled token prefix.
+      tokenization_sanity_check_mode: strict
+    # Enable dynamic batching for rollout log-probability computation.
+    log_prob_use_dynamic_bsz: true
+  ref:
+    # Enable dynamic batching for reference log probabilities.
+    log_prob_use_dynamic_bsz: true
+    fsdp_config:
+      # Enable the reference model's FSDP CPU offload policy.
+      offload_policy: true
+reward:
+  reward_manager:
+    # Resolve the reward manager from verl's registry.
+    source: register
+    # Registered reward manager used with the custom simulator scorer.
+    name: dapo
+  reward_model:
+    # Use simulator reward hooks rather than a learned reward model.
+    enable: false
+trainer:
+  # Select the verl trainer interface targeted by the bundled patches.
+  use_v1: true
+  # Training logger project label.
+  project_name: gridrlvr
+  # Training logger run label.
+  experiment_name: restoration
+  # GPUs per training node; --gpus-per-node overrides this value.
+  n_gpus_per_node: 1
+  # Number of training nodes.
+  nnodes: 1
+  # Checkpoint directory; --checkpoint-dir overrides this placeholder.
+  default_local_dir: /path/to/checkpoints
+  # Number of passes through the training dataset.
+  total_epochs: 3
+  # Run validation before the first training update.
+  val_before_train: true
+  # Checkpoint interval in training steps.
+  save_freq: 10
+  # Validation interval in training steps.
+  test_freq: 10
+  # verl logging destinations.
+  logger: [console]

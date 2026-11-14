@@ -1,0 +1,24 @@
+# verl registry name selected by the training launcher.
+- name: restorebench_agent_loop
+  # Agent-loop class imported by verl.
+  _target_: gridrlvr.verl_adapter.restorebench_loop.RestoreBenchAgentLoop
+  # Environment service URL, or comma-separated URLs for new-client distribution.
+  base_url: ${oc.env:GRIDRLVR_RESTOREBENCH_ENV_URL,http://127.0.0.1:8737}
+  # Fallback registered corpus name; dataset extra_info.corpus takes precedence.
+  corpus: null
+  # HTTP request timeout in seconds.
+  timeout: 600.0
+  # Stop after the first maneuver proposal when true, including rejection.
+  terminate_on_propose: false
+  # Maximum diagnostic and proposal tool calls per rollout.
+  max_steps: 8
+  # Multiplier for the final simulator recovery flag.
+  outcome_weight: 1.0
+  # Multiplier for the last proposal's violation-reduction component.
+  violation_reduction_weight: 0.5
+  # Nonnegative cost subtracted per invalid proposal.
+  invalid_penalty: 0.0
+  # Override rollout sampling temperature on rows whose split is train.
+  sampling_temperature: 0.7
+  # Stored loop option; chat rendering uses data.apply_chat_template_kwargs.
+  enable_thinking: false

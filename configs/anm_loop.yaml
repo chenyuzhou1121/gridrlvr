@@ -1,0 +1,22 @@
+# verl registry name selected by the training launcher.
+- name: anm_agent_loop
+  # Agent-loop class; the launcher switches this for --reward-dimensions.
+  _target_: ${oc.env:GRIDRLVR_ANM_LOOP_TARGET,gridrlvr.verl_adapter.anm_agent_loop.ANMAgentLoop}
+  # JSON/JSONL catalog used to reconstruct each dataset scenario.
+  scenario_file: ${oc.env:GRIDRLVR_SCENARIO_FILE,/path/to/scenarios.json}
+  # Maximum tool proposals per rollout, including rejected proposals.
+  max_steps: 8
+  # Apply only proposals admitted by the shadow verifier.
+  gated: true
+  # terminal: no violations; progress: no new keys; progress_mag: also bound drift.
+  gating_policy: progress_mag
+  # Multiplier for the final simulator recovery flag.
+  outcome_weight: 1.0
+  # Multiplier for accumulated per-step process rewards.
+  process_reward_weight: 0.0
+  # Nonnegative cost subtracted per FAIL or ERROR verdict.
+  violation_penalty: 0.0
+  # Override rollout sampling temperature on rows whose split is train.
+  sampling_temperature: 0.7
+  # Stored loop option; chat rendering uses data.apply_chat_template_kwargs.
+  enable_thinking: false

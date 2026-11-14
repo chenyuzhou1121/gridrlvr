@@ -1,0 +1,23 @@
+diff --git a/verl/trainer/ppo/v1/trainer_base.py b/verl/trainer/ppo/v1/trainer_base.py
+--- a/verl/trainer/ppo/v1/trainer_base.py
++++ b/verl/trainer/ppo/v1/trainer_base.py
+@@ -1595,3 +1595,19 @@ class PPOTrainer(ABC):
+         data.batch["token_level_scores"] = data.batch["rm_scores"]
+         data.non_tensor_batch["uid"] = np.array(data.batch.pop("uid").tolist(), dtype=object)
++
++        gdpo_reward_keys = self.config.algorithm.get("gdpo_reward_keys", None)
++        if gdpo_reward_keys:
++            extra = tq.kv_batch_get(keys=batch.keys, partition_id=batch.partition_id, select_fields=["extra_fields"])
++            extra_fields_list = list(extra["extra_fields"])
++            for key in gdpo_reward_keys:
++                values = []
++                for extra_fields in extra_fields_list:
++                    extra_fields = getattr(extra_fields, "data", extra_fields)
++                    reward_extra_info = (
++                        extra_fields.get("reward_extra_info", {}) if isinstance(extra_fields, dict) else {}
++                    )
++                    values.append(float(reward_extra_info.get(key, 0.0)))
++                dimension = np.array(values, dtype=np.float32)
++                data.non_tensor_batch[key] = dimension
++                metrics[f"gdpo/{key}/mean"] = float(dimension.mean())
+ 

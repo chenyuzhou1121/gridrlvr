@@ -1,0 +1,27 @@
+diff --git a/verl/utils/fsdp_utils.py b/verl/utils/fsdp_utils.py
+--- a/verl/utils/fsdp_utils.py
++++ b/verl/utils/fsdp_utils.py
+@@ -510,7 +510,7 @@ def fsdp2_load_full_state_dict(model: torch.nn.Module, full_state: dict, device_
+         dist.broadcast(buf, src=0)
+ 
+     if cpu_offload:
+-        model.to("cpu", non_blocking=True)
++        model.to("cpu", non_blocking=False)
+         for buf in model.buffers():
+             buf.data = buf.data.to(get_device_id())
+ 
+diff --git a/verl/workers/engine/fsdp/transformer_impl.py b/verl/workers/engine/fsdp/transformer_impl.py
+--- a/verl/workers/engine/fsdp/transformer_impl.py
++++ b/verl/workers/engine/fsdp/transformer_impl.py
+@@ -440,7 +440,10 @@ class FSDPEngine(BaseEngine):
+             if self.engine_config.offload_policy or self.engine_config.forward_only:
+                 self._is_offload_param = False
+                 self._is_offload_optimizer = False
+-                offload_policy = CPUOffloadPolicy(pin_memory=True)
++                pin_env = os.environ.get("VERL_FSDP2_CPU_OFFLOAD_PIN_MEMORY", "1").strip().lower()
++                pin_memory = pin_env not in {"0", "false", "no", "off"}
++                offload_policy = CPUOffloadPolicy(pin_memory=pin_memory)
++                logger.info("FSDP2 CPU offload pin_memory=%s", pin_memory)
+                 self._uses_fsdp2_cpu_offload_policy = True
+ 
+             fsdp_kwargs = {
