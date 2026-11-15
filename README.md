@@ -14,7 +14,7 @@ python3 -m pip install -e .
 
 Base dependencies are gym-anm 2.0.1, NumPy, SciPy, CVXPY, OpenAI, and HTTPX.
 The `train` extra adds verl 0.9.0, pandas, PyArrow, and PyYAML; `restorebench` adds
-RestoreBench, pandapower 3.4.0, and Pydantic for the environment service.
+pandapower 3.4.0 and Pydantic for the environment service.
 Set `OPENAI_API_KEY` in the shell when the chat endpoint requires authentication.
 
 ## Evaluate an ANM scenario
@@ -89,8 +89,12 @@ Supply a corpus with `manifest.json`, `lean/<scenario_id>.json`, and full networ
 
 ```sh
 python3 -m pip install -e '.[restorebench]'
-python3 -m gridrlvr.env.restorebench --corpus demo=/path/to/corpus
+python3 -m gridrlvr.env.restorebench --corpus demo=/path/to/corpus \
+  --restorebench-path /path/to/RestoreBench
 ```
+
+`--restorebench-path` points to a RestoreBench source checkout; omit it when the
+`restorebench` package is already installed in the environment.
 
 In another shell, evaluate with `--environment restorebench --corpus demo
 --env-url http://127.0.0.1:8737` added to the evaluation command and a corpus scenario
